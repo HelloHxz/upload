@@ -10,70 +10,57 @@ app.use(bodyParser.json());
 app.use(bodyParser({defer: true}));
 app.use(bodyParser.urlencoded({ extended: true }));
 
-
-app.get('/', function (req, res) {
-  res.send('Hello World!');
-});
-
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-// fd.append("blob", chunckBlob);
-// fd.append("file_size", allSize);
-// fd.append("file_start", startIndex);
-// fd.append("file_name", file.name);
-// fd.append("file_key", fileKey);
 app.post('/fileupload',function (req, res) {
+  /*
+     start
+     这一步其实完全可以舍去  因为不知道怎么使用nodejs获取文件流 所以借助了第三方formidable获取文件流
+  */
   var form = new formidable.IncomingForm();
-  //Formidable uploads to operating systems tmp dir by default
-  form.uploadDir = "./files";       //set upload directory
-  form.keepExtensions = true;     //keep file extension
+  form.uploadDir = "./files"; 
+  form.keepExtensions = true;   
 
+  
   form.parse(req, function(err, fields, files) {
       res.writeHead(200, {'content-type': 'text/plain'});
-
-      //读取已有文件的大小
+      // 文件的唯一标识
       var fileKey = fields.file_key;
+      //文件的原始大小
+      var fileAllSize = parseInt(fields.file_size);
+      // 存储路径
       var filePath = "./realpath/"+fileKey;
+      // 服务器该文件的大小
       var serverFileSize = 0;
-      var fileContent = "";
+      // 浏览器传过来的开始写入位置
+      var clientStartIndex = parseInt(fields.file_start);
 
+      // 如果文件存在 则读取大小 
       if(fs.existsSync(filePath)){
         var fileState = fs.statSync(filePath);
         serverFileSize = fileState.size;
-        fileContent = fs.readFileSync(filePath);
-        console.log(serverFileSize+"    size》》》");
       }
-
-      var clientStartIndex = parseInt(fields.file_start);
-      var fileAllSize = parseInt(fields.file_size);
+      
       if(serverFileSize!==clientStartIndex){
+        //如果前端传来的开始位置和服务器文件不一致
+        //返回正确的位置让前端继续上传
         res.end(JSON.stringify({code:0,status:0,start:serverFileSize}));
         return;
       }
 
-      console.log("file size: "+JSON.stringify(files.blob.size));
-      console.log("file path: "+JSON.stringify(files.blob.path));
-      console.log("file name: "+JSON.stringify(files.blob.name));
-      console.log("file type: "+JSON.stringify(files.blob.type));
-
+      //读取片段
       var contentText = fs.readFileSync(files.blob.path);
-      
+      //追加写入
       fs.appendFileSync(filePath, contentText);
-
-      fs.rename(files.blob.path, './files/'+files.blob.name, function(err) {
-        if (err){
-          throw err;
-        }
-        console.log('renamed complete');  
-      });
+      //最新的文件大小
       var curSize = serverFileSize + files.blob.size;
-      
-      var upState = 0;
+      var uploadStatus = 0;
       if(curSize===fileAllSize){
-        upState = 1;
+        //标识文件上传完成
+        uploadStatus = 1;
       }
-      res.end(JSON.stringify({code:0,status:upState,start:curSize}));
+      res.end(JSON.stringify({code:0,status:uploadStatus,start:curSize}));
   });
 });
 

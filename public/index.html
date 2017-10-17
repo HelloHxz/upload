@@ -6,7 +6,13 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
     <script type="text/javascript">
-
+        // 前台逻辑
+        // 本地存储一份以文件key作为key的上传记录 记录上次上传到的字节位置
+        // 上传的时候这个字段会一起传递给后台
+        // 如果位置和后台的文件长度一致 那么该请求会继续上传，成功返回{state:0，start:n，code：0} 写入本地存储记录位置
+        // 如果位置和后台文件长度不一致，那么后台返回正确的长度，{state:0,start:n，code:0}，文件继续上传
+        // 如果完成了{state:1,code:0}
+        // state 1表示是上传完成 0 表示未完成
 
         function getUniqueFileKey(file){
             // 可以做md5 
@@ -15,12 +21,6 @@
         }
 
         function readStartIndexByFileKey(fileKey){
-            // 本地存储一份以文件key作为key的上传记录 记录上次上传到的字节位置
-            // 上传的时候这个字段会一起传递给后台
-            // 如果位置和后台的文件长度一致 那么该请求会继续上传，成功返回{state:0，start:19，code：0} 写入本地存储记录位置
-            // 如果位置和后台文件长度不一致，那么后台返回正确的长度{state:0,start:23，code:0}，文件继续上传
-            // 如果完成了{state:1,code:0}，文件继续上传
-            // state 表示是否上传完成
 
             return 0;
 
@@ -30,22 +30,31 @@
 
         }
 
-        function uploadFile(file,startIndex,chunckSize,fileKey){
+        var test_step = 0;
+
+        function uploadFile(file,startIndex,_chunckSize,fileKey){
+
+            test_step+=1;
+
+            // 测试续传方法
+            // 去掉下方注释 上传一部分
+            // 然后注释掉下方代码 继续上传
+
+            // if(test_step>=3){
+            //     alert("终止了");
+            //     return;
+            // }
+
             var allSize = file.size;
-            console.log(file)
             var fd = new FormData();
 
             var chunckBlob = null;
-            console.log(startIndex+chunckSize);
-            console.log(allSize);
             
-            if(startIndex+chunckSize<allSize){
-                chunckBlob=file.slice(startIndex,startIndex+chunckSize);
+            if(startIndex+_chunckSize<allSize){
+                chunckBlob=file.slice(startIndex,startIndex+_chunckSize);
             }else{
                 chunckBlob=file.slice(startIndex);
             }
-
-
 
 
             fd.append("blob", chunckBlob);
@@ -67,7 +76,7 @@
                    writeStartIndexWithFileKey(fileKey,RState);
                    if(start<allSize){
                        //继续上传
-                       uploadFile(file,start,chunkSize,fileKey);
+                       uploadFile(file,start,_chunckSize,fileKey);
                    }else{
                        //完成不上传
                        alert("成功");
@@ -75,23 +84,20 @@
                    }
                 }
             }
-
-            xhr.open('POST', './fileupload', false);//false指同步上传，因为我的服务器内存较小，选择同步，如果追求速度，可以选择
-            //ture，异步上传
+            xhr.open('POST', './fileupload', false);
             xhr.send(fd);
         }
 
         var chunkSize = 18000;
+        // ajax 请求上限，过多会报错
         var chunckCount = 5;
         function onSelect(e){
            var blob = e.target.files[0];
+           console.log(blob)
            chunkSize = parseInt(blob.size/chunckCount);
            var fileUniqueKey = getUniqueFileKey(blob);
-
            var startIndex = readStartIndexByFileKey(fileUniqueKey);
-
            uploadFile(blob,startIndex,chunkSize,fileUniqueKey);
-           
         }
     </script>
 </head>
