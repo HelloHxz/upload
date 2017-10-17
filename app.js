@@ -6,11 +6,15 @@ var bodyParser = require('body-parser')
 var fs =require('fs-extra');
 
 
-app.use(bodyParser.json());
-app.use(bodyParser({defer: true}));
 app.use(bodyParser.urlencoded({ extended: true }));
-
 app.use(express.static(path.join(__dirname, 'public')));
+
+
+// app.post("/fu",urlencodedParser,function(req,res){
+//   console.log(req.body);
+//   console.log(req.files);
+//   res.end(JSON.stringify({code:0,status:1,start:100000}));
+// })
 
 
 app.post('/fileupload',function (req, res) {
@@ -19,10 +23,7 @@ app.post('/fileupload',function (req, res) {
      这一步其实完全可以舍去  因为不知道怎么使用nodejs获取文件流 所以借助了第三方formidable获取文件流
   */
   var form = new formidable.IncomingForm();
-  form.uploadDir = "./files"; 
-  form.keepExtensions = true;   
 
-  
   form.parse(req, function(err, fields, files) {
       res.writeHead(200, {'content-type': 'text/plain'});
       // 文件的唯一标识
@@ -30,7 +31,7 @@ app.post('/fileupload',function (req, res) {
       //文件的原始大小
       var fileAllSize = parseInt(fields.file_size);
       // 存储路径
-      var filePath = "./realpath/"+fileKey;
+      var filePath = "./files/"+fileKey;
       // 服务器该文件的大小
       var serverFileSize = 0;
       // 浏览器传过来的开始写入位置

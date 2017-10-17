@@ -108,6 +108,7 @@
         function onSelect(e){
            var blob = e.target.files[0];
            console.log(blob)
+           // 可以做策略控制 根据文件的大小决定chunckCount值，比如小于1M使用一个请求，
            chunkSize = parseInt(blob.size/chunckCount);
            var fileUniqueKey = getUniqueFileKey(blob);
            var startIndex = readStartIndexByFileKey(fileUniqueKey);
