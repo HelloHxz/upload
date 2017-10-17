@@ -18,6 +18,11 @@ app.get('/', function (req, res) {
 app.use(express.static(path.join(__dirname, 'public')));
 
 
+// fd.append("blob", chunckBlob);
+// fd.append("file_size", allSize);
+// fd.append("file_start", startIndex);
+// fd.append("file_name", file.name);
+// fd.append("file_key", fileKey);
 app.post('/fileupload',function (req, res) {
   var form = new formidable.IncomingForm();
   //Formidable uploads to operating systems tmp dir by default
@@ -26,23 +31,49 @@ app.post('/fileupload',function (req, res) {
 
   form.parse(req, function(err, fields, files) {
       res.writeHead(200, {'content-type': 'text/plain'});
-      console.log("form.bytesReceived");
-      //TESTING
-      console.log("file size: "+JSON.stringify(files.fileUploaded.size));
-      console.log("file path: "+JSON.stringify(files.fileUploaded.path));
-      console.log("file name: "+JSON.stringify(files.fileUploaded.name));
-      console.log("file type: "+JSON.stringify(files.fileUploaded.type));
 
-      var contentText = fs.readFileSync(files.fileUploaded.path);
-      fs.writeFileSync("./realpath/"+files.fileUploaded.name, contentText);
+      //读取已有文件的大小
+      var fileKey = fields.file_key;
+      var filePath = "./realpath/"+fileKey;
+      var serverFileSize = 0;
+      var fileContent = "";
 
-      fs.rename(files.fileUploaded.path, './files/'+files.fileUploaded.name, function(err) {
+      if(fs.existsSync(filePath)){
+        var fileState = fs.statSync(filePath);
+        serverFileSize = fileState.size;
+        fileContent = fs.readFileSync(filePath);
+        console.log(serverFileSize+"    size》》》");
+      }
+
+      var clientStartIndex = parseInt(fields.file_start);
+      var fileAllSize = parseInt(fields.file_size);
+      if(serverFileSize!==clientStartIndex){
+        res.end(JSON.stringify({code:0,status:0,start:serverFileSize}));
+        return;
+      }
+
+      console.log("file size: "+JSON.stringify(files.blob.size));
+      console.log("file path: "+JSON.stringify(files.blob.path));
+      console.log("file name: "+JSON.stringify(files.blob.name));
+      console.log("file type: "+JSON.stringify(files.blob.type));
+
+      var contentText = fs.readFileSync(files.blob.path);
+      
+      fs.appendFileSync(filePath, contentText);
+
+      fs.rename(files.blob.path, './files/'+files.blob.name, function(err) {
         if (err){
           throw err;
         }
         console.log('renamed complete');  
       });
-      res.end(JSON.stringify({code:0,status:200}));
+      var curSize = serverFileSize + files.blob.size;
+      
+      var upState = 0;
+      if(curSize===fileAllSize){
+        upState = 1;
+      }
+      res.end(JSON.stringify({code:0,status:upState,start:curSize}));
   });
 });
 

@@ -6,28 +6,91 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
     <script type="text/javascript">
-        function onSelect(e){
-           var blob = e.target.files[0];
-        console.log(blob)
 
-            var chunk;  
 
+        function getUniqueFileKey(file){
+            // 可以做md5 
+            // 其实做用户隔离加lastModified和name也基本唯一
+            return file.lastModified+"_"+file.name;
+        }
+
+        function readStartIndexByFileKey(fileKey){
+            // 本地存储一份以文件key作为key的上传记录 记录上次上传到的字节位置
+            // 上传的时候这个字段会一起传递给后台
+            // 如果位置和后台的文件长度一致 那么该请求会继续上传，成功返回{state:0，start:19，code：0} 写入本地存储记录位置
+            // 如果位置和后台文件长度不一致，那么后台返回正确的长度{state:0,start:23，code:0}，文件继续上传
+            // 如果完成了{state:1,code:0}，文件继续上传
+            // state 表示是否上传完成
+
+            return 0;
+
+        }
+
+        function writeStartIndexWithFileKey(fileKey,startIndex){
+
+        }
+
+        function uploadFile(file,startIndex,chunckSize,fileKey){
+            var allSize = file.size;
+            console.log(file)
             var fd = new FormData();
-            fd.append("fileUploaded", blob);
-            fd.append("file_size", blob.size);
-            fd.append("file_key", blob.lastModified+"_"+blob.name);
+
+            var chunckBlob = null;
+            console.log(startIndex+chunckSize);
+            console.log(allSize);
+            
+            if(startIndex+chunckSize<allSize){
+                chunckBlob=file.slice(startIndex,startIndex+chunckSize);
+            }else{
+                chunckBlob=file.slice(startIndex);
+            }
+
+
+
+
+            fd.append("blob", chunckBlob);
+            fd.append("file_size", allSize);
+            fd.append("file_start", startIndex);
+            fd.append("file_name", file.name);
+            fd.append("file_key", fileKey);
             var xhr = new XMLHttpRequest();
 
             xhr.onreadystatechange = function(){
                 if (xhr.readyState==4 && xhr.status==200){
-                    console.log(JSON.stringify(xhr.responseText));
+                   var RJSON = JSON.parse(xhr.responseText);
+                   var start = RJSON.start;
+                   var RState = RJSON.status;
+                   if(RState===1){
+                       alert("成功");
+                       return;
+                   }
+                   writeStartIndexWithFileKey(fileKey,RState);
+                   if(start<allSize){
+                       //继续上传
+                       uploadFile(file,start,chunkSize,fileKey);
+                   }else{
+                       //完成不上传
+                       alert("成功");
+                       return;
+                   }
                 }
             }
 
             xhr.open('POST', './fileupload', false);//false指同步上传，因为我的服务器内存较小，选择同步，如果追求速度，可以选择
             //ture，异步上传
             xhr.send(fd);
+        }
 
+        var chunkSize = 18000;
+        var chunckCount = 5;
+        function onSelect(e){
+           var blob = e.target.files[0];
+           chunkSize = parseInt(blob.size/chunckCount);
+           var fileUniqueKey = getUniqueFileKey(blob);
+
+           var startIndex = readStartIndexByFileKey(fileUniqueKey);
+
+           uploadFile(blob,startIndex,chunkSize,fileUniqueKey);
            
         }
     </script>
