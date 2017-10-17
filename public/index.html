@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script type="text/javascript">
+        function onSelect(e){
+           var blob = e.target.files[0];
+        console.log(blob)
+
+            var chunk;  
+
+            var fd = new FormData();
+            fd.append("fileUploaded", blob);
+            fd.append("file_size", blob.size);
+            fd.append("file_key", blob.lastModified+"_"+blob.name);
+            var xhr = new XMLHttpRequest();
+
+            xhr.onreadystatechange = function(){
+                if (xhr.readyState==4 && xhr.status==200){
+                    console.log(JSON.stringify(xhr.responseText));
+                }
+            }
+
+            xhr.open('POST', './fileupload', false);//false指同步上传，因为我的服务器内存较小，选择同步，如果追求速度，可以选择
+            //ture，异步上传
+            xhr.send(fd);
+
+           
+        }
+    </script>
+</head>
+<body>
+    <input onchange="onSelect(event)" type='file'/>
+</body>
+</html>
