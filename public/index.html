@@ -21,29 +21,41 @@
         }
 
         function readStartIndexByFileKey(fileKey){
-
+            var v = localStorage.getItem(fileKey+"_filesize");
+            if(!isNaN(v)){
+                return parseInt(v);
+            }
             return 0;
-
         }
 
         function writeStartIndexWithFileKey(fileKey,startIndex){
+            localStorage.setItem(fileKey+"_filesize",startIndex);
+        }
 
+        function setprogress(start,all){
+            var progress = "10%";
+            if(start>0){
+                progress =  Math.ceil(start*100/all)+"%";
+            }
+            document.getElementById("progress").innerHTML = progress;
         }
 
         var test_step = 0;
-
+        var xhr = new XMLHttpRequest();
         function uploadFile(file,startIndex,_chunckSize,fileKey){
 
-            test_step+=1;
 
             // 测试续传方法
             // 去掉下方注释 上传一部分
             // 然后注释掉下方代码 继续上传
 
-            // if(test_step>=3){
+            // if(test_step>3){
             //     alert("终止了");
             //     return;
             // }
+
+            test_step+=1;
+            
 
             var allSize = file.size;
             var fd = new FormData();
@@ -56,35 +68,37 @@
                 chunckBlob=file.slice(startIndex);
             }
 
+            setprogress(startIndex,allSize);
 
             fd.append("blob", chunckBlob);
             fd.append("file_size", allSize);
             fd.append("file_start", startIndex);
             fd.append("file_name", file.name);
             fd.append("file_key", fileKey);
-            var xhr = new XMLHttpRequest();
+            
 
             xhr.onreadystatechange = function(){
                 if (xhr.readyState==4 && xhr.status==200){
                    var RJSON = JSON.parse(xhr.responseText);
-                   var start = RJSON.start;
-                   var RState = RJSON.status;
-                   if(RState===1){
-                       alert("成功");
+                   var RFileStart = RJSON.start;
+                   var RStatus = RJSON.status;
+                   if(RStatus===1){
+                       setprogress(1,1);
                        return;
                    }
-                   writeStartIndexWithFileKey(fileKey,RState);
-                   if(start<allSize){
+                   writeStartIndexWithFileKey(fileKey,RFileStart);
+                   if(RFileStart<allSize){
                        //继续上传
-                       uploadFile(file,start,_chunckSize,fileKey);
+                       uploadFile(file,RFileStart,_chunckSize,fileKey);
                    }else{
-                       //完成不上传
-                       alert("成功");
+                       //完成,不上传
+                       setprogress(1,1);
                        return;
                    }
                 }
             }
-            xhr.open('POST', './fileupload', false);
+         
+            xhr.open('POST', './fileupload', true);
             xhr.send(fd);
         }
 
@@ -103,5 +117,6 @@
 </head>
 <body>
     <input onchange="onSelect(event)" type='file'/>
+    <div id='progress'></div>
 </body>
 </html>
