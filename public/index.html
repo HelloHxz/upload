@@ -33,6 +33,8 @@
         }
 
         function writeStartIndexWithFileKey(fileKey,startIndex){
+            //都是以后台的文件长度为准，这个记录如果和后台文件长度匹配，那么就可以减少一次请求而已
+            //如果记录不准确，后台会判断返回正确的开始位置，然后继续上传
             localStorage.setItem(fileKey+"_filesize",startIndex);
         }
 
