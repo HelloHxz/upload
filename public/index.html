@@ -28,9 +28,20 @@
             return 0;
         }
 
+        function removeStartIndexByFileKey(fileKey){
+            localStorage.removeItem(fileKey+"_filesize");
+        }
+
         function writeStartIndexWithFileKey(fileKey,startIndex){
             localStorage.setItem(fileKey+"_filesize",startIndex);
         }
+
+        function uploadSuccess(fileKey){
+            removeStartIndexByFileKey(fileKey);
+            setprogress(1,1);
+        }
+
+
 
         function setprogress(start,all){
             var progress = "10%";
@@ -82,17 +93,17 @@
                    var RJSON = JSON.parse(xhr.responseText);
                    var RFileStart = RJSON.start;
                    var RStatus = RJSON.status;
+                   writeStartIndexWithFileKey(fileKey,RFileStart);
                    if(RStatus===1){
-                       setprogress(1,1);
+                       uploadSuccess(fileKey);
                        return;
                    }
-                   writeStartIndexWithFileKey(fileKey,RFileStart);
                    if(RFileStart<allSize){
                        //继续上传
                        uploadFile(file,RFileStart,_chunckSize,fileKey);
                    }else{
                        //完成,不上传
-                       setprogress(1,1);
+                       uploadSuccess(fileKey);
                        return;
                    }
                 }
@@ -102,17 +113,18 @@
             xhr.send(fd);
         }
 
-        var chunkSize = 18000;
+        //分片字节大小
+        var chunkSize = 0;
         // ajax 请求上限，过多会报错
         var chunckCount = 5;
         function onSelect(e){
-           var blob = e.target.files[0];
-           console.log(blob)
+           var flie = e.target.files[0];
+           console.log(flie)
            // 可以做策略控制 根据文件的大小决定chunckCount值，比如小于1M使用一个请求，
-           chunkSize = parseInt(blob.size/chunckCount);
-           var fileUniqueKey = getUniqueFileKey(blob);
+           chunkSize = parseInt(flie.size/chunckCount);
+           var fileUniqueKey = getUniqueFileKey(flie);
            var startIndex = readStartIndexByFileKey(fileUniqueKey);
-           uploadFile(blob,startIndex,chunkSize,fileUniqueKey);
+           uploadFile(flie,startIndex,chunkSize,fileUniqueKey);
         }
     </script>
 </head>
