@@ -27,7 +27,7 @@ app.post('/fileupload',function (req, res) {
   form.parse(req, function(err, fields, files) {
       res.writeHead(200, {'content-type': 'text/plain'});
       // 文件的唯一标识
-      var fileKey = fields.file_key;
+      var fileKey = fields.file_md5;
       //文件的原始大小
       var fileAllSize = parseInt(fields.file_size);
       // 存储路径
@@ -46,7 +46,7 @@ app.post('/fileupload',function (req, res) {
       if(serverFileSize!==clientStartIndex){
         //如果前端传来的开始位置和服务器文件不一致
         //返回正确的位置让前端继续上传
-        res.end(JSON.stringify({code:0,status:0,start:serverFileSize}));
+        res.end(JSON.stringify({code:0,start:serverFileSize}));
         return;
       }
 
@@ -61,7 +61,7 @@ app.post('/fileupload',function (req, res) {
         //标识文件上传完成
         uploadStatus = 1;
       }
-      res.end(JSON.stringify({code:0,status:uploadStatus,start:curSize}));
+      res.end(JSON.stringify({code:0,start:curSize}));
   });
 });
 
