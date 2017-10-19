@@ -56,11 +56,7 @@ app.post('/fileupload',function (req, res) {
       fs.appendFileSync(filePath, contentText);
       //最新的文件大小
       var curSize = serverFileSize + files.blob.size;
-      var uploadStatus = 0;
-      if(curSize===fileAllSize){
-        //标识文件上传完成
-        uploadStatus = 1;
-      }
+      
       res.end(JSON.stringify({code:0,file_size:curSize}));
   });
 });

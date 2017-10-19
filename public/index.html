@@ -82,9 +82,9 @@
 
         var test_step = 0;
       
-        function uploadFile(file,startIndex,_chunckSize,_md5){
+        function _uploadFile(file,startIndex,_chunckSize,_md5){
 
-            // 测试续传方法 chunckCount分成多次上传 在不走进行到某一步骤的时候return
+            // 测试续传方法 chunckCount分成多次上传 在步骤进行到某一步的时候return
             // 去掉下方注释 上传一部分
             // 然后注释掉下方代码 继续上传
 
@@ -117,16 +117,25 @@
             xhr.onreadystatechange = function(){
                 if (xhr.readyState==4 && xhr.status==200){
                    var RJSON = JSON.parse(xhr.responseText);
-                   var RFileSize = RJSON.file_size;
-                   writeStartIndexWithFileKey(_md5,RFileSize);
-                   if(RFileSize<allSize){
-                       //继续上传
-                       hasAlreadyUploadSize = RFileSize;
-                       uploadFile(file,RFileSize,_chunckSize,_md5);
+                   if(RJSON.code===0){
+                        var RFileSize = RJSON.file_size;
+                        writeStartIndexWithFileKey(_md5,RFileSize);
+                        if(RFileSize<allSize){
+                            //继续上传
+                            if(hasAlreadyUploadSize===RFileSize){
+                                // 避免死循环
+                                return;
+                            }
+                            hasAlreadyUploadSize = RFileSize;
+                            _uploadFile(file,RFileSize,_chunckSize,_md5);
+                        }else{
+                            uploadSuccess(_md5);
+                            return;
+                        }
                    }else{
-                       uploadSuccess(_md5);
-                       return;
+                       alert(RJSON.mes||"上传发生错误");
                    }
+                  
                 }
             }
 
@@ -143,36 +152,36 @@
 
         //分片字节大小
         var chunkSize = 0;
-        // 提供分多次上传的功能，1标识不分段
-        var chunckCount =6;
+        // 提供分多次上传的功能，1 表示整段上传
+        var chunckCount = 1;
         var xhr;
         var hasAlreadyUploadSize=0;
-        
-        function onSelect(e){
-           var file = e.target.files[0];
-           console.log(file)
-           hasAlreadyUploadSize = 0;
-           chunkSize = parseInt(Math.ceil((file.size/chunckCount)));
-           xhr = null;
-           xhr = new XMLHttpRequest();
 
+        function startUpload(md5,file){
+            chunkSize = parseInt(Math.ceil((file.size/chunckCount)));
+            hasAlreadyUploadSize = 0;
+            xhr = null;
+            xhr = new XMLHttpRequest();
+            var startIndex = readStartIndexByFileKey(md5);
 
-           getFileMd5(file,function(md5){
-             var startIndex = readStartIndexByFileKey(md5);
-
-             function onprogressHandler (evt){
+            function onprogressHandler (evt){
                 if (evt.lengthComputable) {
                     var percentComplete = Math.round((hasAlreadyUploadSize+evt.loaded) * 100 /file.size);
                     updateProgress(percentComplete.toString()+"%")
-                }
-                else {
-                    document.getElementById('progress').innerHTML = 'unable to compute';
+                }else {
+                    updateProgress("unable to compute")
                 }
             }
 
             xhr.upload.addEventListener('progress', onprogressHandler, false);
-
-             uploadFile(file,startIndex,chunkSize,md5);
+            _uploadFile(file,startIndex,chunkSize,md5);
+        }
+        
+        function onSelect(e){
+           var file = e.target.files[0];
+           console.log(file)
+           getFileMd5(file,function(md5){
+            startUpload(md5,file);
            });
         }
     </script>
