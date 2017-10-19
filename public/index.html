@@ -8,6 +8,7 @@
     <script src="./spark-md5.min.js" type="text/javascript"></script>
     <script type="text/javascript">
         // 前台逻辑
+
         // 本地存储一份以文件key作为key的上传记录 记录上次上传到的字节位置
         // 上传的时候这个字段会一起传递给后台
         // 如果位置和后台的文件长度一致 那么该请求会继续上传，成功返回{file_size:n,code：0} 写入本地存储记录位置
@@ -103,40 +104,12 @@
                 chunckBlob=file.slice(startIndex);
             }
 
-
-
             fd.append("blob", chunckBlob);
             fd.append("file_size", allSize);
             fd.append("file_start_index", startIndex);
             fd.append("file_name", file.name);
             fd.append("file_md5", _md5);
-            
          
-            xhr.onreadystatechange = function(){
-                if (xhr.readyState==4 && xhr.status==200){
-                   var RJSON = JSON.parse(xhr.responseText);
-                   if(RJSON.code===0){
-                        var RFileSize = RJSON.file_size;
-                        writeStartIndexWithFileKey(_md5,RFileSize);
-                        if(RFileSize<allSize){
-                            //继续上传
-                            if(hasAlreadyUploadSize===RFileSize){
-                                // 避免死循环
-                                return;
-                            }
-                            hasAlreadyUploadSize = RFileSize;
-                            _uploadFile(file,RFileSize,_chunckSize,_md5);
-                        }else{
-                            uploadSuccess(_md5);
-                            return;
-                        }
-                   }else{
-                       alert(RJSON.mes||"上传发生错误");
-                   }
-                  
-                }
-            }
-
             xhr.open('POST', './fileupload', true);
             xhr.send(fd);
         }
@@ -172,6 +145,32 @@
             }
 
             xhr.upload.addEventListener('progress', onprogressHandler, false);
+
+            xhr.onreadystatechange = function(){
+                if (xhr.readyState==4 && xhr.status==200){
+                   var RJSON = JSON.parse(xhr.responseText);
+                   if(RJSON.code===0){
+                        var RFileSize = RJSON.file_size;
+                        writeStartIndexWithFileKey(md5,RFileSize);
+                        if(RFileSize<file.size){
+                            //继续上传
+                            if(hasAlreadyUploadSize===RFileSize){
+                                // 避免死循环
+                                return;
+                            }
+                            hasAlreadyUploadSize = RFileSize;
+                            _uploadFile(file,RFileSize,chunkSize,md5);
+                        }else{
+                            uploadSuccess(md5);
+                            return;
+                        }
+                   }else{
+                       alert(RJSON.mes||"上传发生错误");
+                   }
+                  
+                }
+            }
+
             _uploadFile(file,startIndex,chunkSize,md5);
         }
         
