@@ -10,20 +10,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'other')));
 
-
-// app.post("/fu",urlencodedParser,function(req,res){
-//   console.log(req.body);
-//   console.log(req.files);
-//   res.end(JSON.stringify({code:0,status:1,start:100000}));
-// })
-
-
 app.post('/fileupload',function (req, res) {
   /*
      这一步其实完全可以舍去  因为不知道怎么使用nodejs获取文件流 所以借助了第三方formidable获取文件流
   */
   var form = new formidable.IncomingForm();
-//response.addHeader("File-Size","size of the file");
+  //未发生异常为0 发生异常code为1
   form.parse(req, function(err, fields, files) {
       res.writeHead(200, {'content-type': 'text/plain'});
       // 文件的唯一标识
@@ -42,10 +34,15 @@ app.post('/fileupload',function (req, res) {
         var fileState = fs.statSync(filePath);
         serverFileSize = fileState.size;
       }
-      
+
+      if(fileAllSize===serverFileSize){
+        //服务器的大小和文件一样说明文件已上传完成
+        res.end(JSON.stringify({code:0,file_size:fileAllSize}));
+        return;
+      }
       if(serverFileSize!==clientStartIndex){
         //如果前端传来的开始位置和服务器文件不一致
-        //返回正确的位置让前端判断是否继续上传，服务器的大小和文件一样说明文件已上传完成
+        //返回正确的位置让前端判断是否继续上传
         res.end(JSON.stringify({code:0,file_size:serverFileSize}));
         return;
       }
@@ -56,7 +53,7 @@ app.post('/fileupload',function (req, res) {
       fs.appendFileSync(filePath, contentText);
       //最新的文件大小
       var curSize = serverFileSize + files.blob.size;
-      
+
       res.end(JSON.stringify({code:0,file_size:curSize}));
   });
 });

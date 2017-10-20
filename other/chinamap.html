@@ -8,57 +8,145 @@
 
 </style>
 <body>
-<script src="http://d3js.org/d3.v3.min.js"></script>
+<div id="maproot"></div>
+
+<script src="./d3.js"></script>
 <script>
-	var width  = 1000;
-	var height = 1000;
-	
-	var svg = d3.select("body").append("svg")
+
+	var MapConfig ={
+		"中国":{path:"china.json",scale:610,center:[105, 30]},
+		"江西":{textoffsetX:-0,textoffsetY:0,path:"jiangxi.json",scale:4200,center:[116, 27]},
+		"湖南":{textoffsetX:-0,textoffsetY:0,path:"hunan.json",scale:4200,center:[112, 27]},
+		"贵州":{textoffsetX:-0,textoffsetY:0,path:"guizhou.json",scale:4200,center:[107, 27]},
+		"云南":{textoffsetX:-0,textoffsetY:0,path:"yunnan.json",scale:3600,center:[102, 25]},
+		"广西":{textoffsetX:-0,textoffsetY:0,path:"guangxi.json",scale:4200,center:[108, 23]},
+		"广东":{textoffsetX:0,textoffsetY:-0,path:"guangdong.json",scale:4200,center:[114, 22]},
+		"海南":{textoffsetX:-0,textoffsetY:0,path:"hainan.json",scale:9200,center:[110, 19]},
+		"新疆":{textoffsetX:-0,textoffsetY:0,path:"xinjiang.json",scale:1300,center:[88, 40]},
+		"西藏":{textoffsetX:-0,textoffsetY:0,path:"xizang.json",scale:1400,center:[88, 30]},
+		"青海":{textoffsetX:-0,textoffsetY:-0,path:"qinghai.json",scale:2000,center:[96, 34]},
+		"四川":{textoffsetX:-0,textoffsetY:0,path:"sichuan.json",scale:3400,center:[103, 30]},
+		"甘肃":{textoffsetX:-0,textoffsetY:0,path:"gansu.json",scale:2300,center:[101, 37]},
+		"内蒙古":{textoffsetX:-0,textoffsetY:0,path:"neimenggu.json",scale:1300,center:[112, 44]},
+		"黑龙江":{textoffsetX:-0,textoffsetY:-0,path:"heilongjiang.json",scale:2200,center:[129, 48]},
+		"吉林":{textoffsetX:-0,textoffsetY:0,path:"jilin.json",scale:3400,center:[126, 43]},
+		"辽宁":{textoffsetX:9,textoffsetY:-0,path:"liaoning.json",scale:4400,center:[122, 41]},
+		"山西":{textoffsetX:-0,textoffsetY:-0,path:"shan1xi.json",scale:3800,center:[113, 37]},
+		"宁夏":{textoffsetX:-0,textoffsetY:0,path:"ningxia.json",scale:4800,center:[107, 37]},
+		"陕西":{textoffsetX:-0,textoffsetY:0,path:"shan3xi.json",scale:3400,center:[110, 35]},
+		"重庆":{textoffsetX:-0,textoffsetY:0,path:"chongqing.json",scale:6400,center:[108, 30]},
+		"湖北":{textoffsetX:-0,textoffsetY:0,path:"hubei.json",scale:4400,center:[112, 31]},
+		"安徽":{textoffsetX:-0,textoffsetY:0,path:"anhui.json",scale:4600,center:[118, 32]},
+		"浙江":{textoffsetX:-0,textoffsetY:-0,path:"zhejiang.json",scale:5000,center:[121, 29]},
+		"福建":{textoffsetX:-0,textoffsetY:0,path:"fujian.json",scale:5000,center:[119, 26]},
+		"河南":{textoffsetX:-0,textoffsetY:0,path:"henan.json",scale:4600,center:[114, 34]},
+		"山东":{textoffsetX:-0,textoffsetY:-0,path:"shandong.json",scale:4600,center:[119, 36]},
+		"江苏":{textoffsetX:-0,textoffsetY:-0,path:"jiangsu.json",scale:5600,center:[119, 33]},
+		"河北":{textoffsetX:-0,textoffsetY:0,path:"hebei.json",scale:3600,center:[117, 39]},
+		"北京":{textoffsetX:-0,textoffsetY:0,path:"beijing.json",scale:15500,center:[116.5, 40.1]},
+		"天津":{textoffsetX:-0,textoffsetY:0,path:"tianjin.json",scale:15500,center:[117.5, 39.3]},
+		"澳门":{textoffsetX:0,textoffsetY:0},
+	}
+
+	var width  = 700;
+	var height = 700;
+
+
+	function createMapName(name){
+		var config = MapConfig[name];
+		if(!config||!config.path){
+			return;
+		}
+		document.getElementById("maproot").innerHTML = "";
+		var svg = d3.select("#maproot").append("svg")
 	    .attr("width", width)
-	    .attr("height", height)
+	    .attr("height", height).append("svg:g")  
+	    .attr("id", "texts")
 	    .append("g")
-	    .attr("transform", "translate(0,0)");
-	
-	var projection = d3.geo.mercator()
-						.center([107, 31])
-						.scale(850)
-    					.translate([width/2, height/2]);
-	
-	var path = d3.geo.path()
-					.projection(projection);
-	
-	
-	var color = d3.scale.category20();
-	
-	
-	d3.json("china.geojson", function(error, root) {
+		.attr("transform", "translate(0,0)");
 		
-		if (error) 
-			return console.error(error);
-		console.log(root.features);
+		var scale = config.scale||1200;
+		var center = config.center||[105, 30];
+		var projection = d3.geo.mercator()
+							.center(center)
+							.scale(scale)
+							.translate([width/2, height/2]);
 		
-		svg.selectAll("path")
-			.data( root.features )
-			.enter()
-			.append("path")
-			.attr("stroke","#000")
-			.attr("stroke-width",1)
-			.attr("fill", function(d,i){
-				return "#eee";
-			})
-			.attr("d", path )
-			.on("mouseover",function(d,i){
-                d3.select(this)
-                    .attr("fill","yellow");
-            })
-            .on("mouseout",function(d,i){
-                d3.select(this)
-                    .attr("fill","#eee");
-            });
+		var path = d3.geo.path()
+						.projection(projection);
 		
-	});
+		console.log(path)
+		
+		d3.json(config.path, function(error, root) {
+			
+			if (error) {
+				return console.error(error);
+			}
+				
+			console.log(root.features);
+			
+			svg.selectAll("path")
+				.data( root.features )
+				.enter()	
+				.append("path")
+				.attr("stroke","#ccc")
+				.attr("stroke-width",.1)
+				.attr("id", function(d,i){
+					return "pathid_"+i;
+				})
+				.attr("fill", function(d,i){
+					return "#eee";
+				})
+		
+				.attr("d", path )
+				.attr("cursor", "pointer" )
+				.attr("stroke-width",1)
+				.on("mouseover",function(d,i){
+					d3.select(this)
+						.attr("fill","#ccc");
+				}).on("click",function(d,i){
+				    alert(d.properties.name);
+					createMapName(d.properties.name);
+				})
+				.on("mouseout",function(d,i){
+					d3.select(this)
+						.attr("fill","#eee");
+				});
+				
+				svg.selectAll("text")  
+				.data(root.features )  
+				.enter().append("svg:text")  
+				.text(function(d){ return d.properties.name;})  
+				.attr("x", function(d){ 
+					var offset = MapConfig[d.properties.name]||{textoffsetX:0,textoffsetY:0};
+					var re = d.geometry.coordinates[0][0][0];
+					if(re instanceof Array){
+						return projection([re[0],re[1]])[0]+offset.textoffsetX;
+					}
+					return projection([re,d.geometry.coordinates[0][0][1]])[0]+offset.textoffsetX;
+				})  
+				.attr("y",function(d){  
+					var offset = MapConfig[d.properties.name]||{textoffsetX:0,textoffsetY:0};
+					var re = d.geometry.coordinates[0][0][0];
+					if(re instanceof Array){
+						return projection([re[0],re[1]])[1]+offset.textoffsetY;
+					}
+					return projection([re,d.geometry.coordinates[0][0][1]])[1]+offset.textoffsetY;
+				})  
+				.attr('fill','#6f6f6f')  
+				.attr('font-size','12px');  
+
+			
+			
+		});
+	}
+
+	window.onload = function(){
+		createMapName("中国");
+	}
+	
+	
 
 </script>
-	
 </body>  
 </html>  

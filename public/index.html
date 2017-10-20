@@ -87,7 +87,7 @@
             // 去掉下方注释 上传一部分
             // 然后注释掉下方代码 继续上传
 
-            // if(test_step>3){
+            // if(test_step>1){
             //     alert("终止了");
             //     return;
             // }
@@ -103,6 +103,8 @@
             }else{
                 chunckBlob=file.slice(startIndex);
             }
+
+            console.log(startIndex)
 
             fd.append("blob", chunckBlob);
             fd.append("file_size", allSize);
