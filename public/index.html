@@ -8,7 +8,7 @@
     <script src="./spark-md5.min.js" type="text/javascript"></script>
     <script type="text/javascript">
         var suffixStoreIndex = "_FILESTOREINDEX"
-        function getFileMd5(file,successCallBack){
+        function getFileMd5(file,fliename,successCallBack){
             var fileReader = new FileReader(),    
                 blobSlice = File.prototype.mozSlice || File.prototype.webkitSlice || File.prototype.slice,    
                 chunkSize = 2097152,    
@@ -25,7 +25,7 @@
                 }    
                 else {    
                     var file_suffix = "";
-                    var nameArr = file.name.split(".");
+                    var nameArr =fliename.split(".");
                     if(nameArr.length >= 2){
                         file_suffix = "." + nameArr[nameArr.length-1];
                     }
@@ -202,11 +202,11 @@
 
         function onSelect(e){
            var file = e.target.files[0];
-           var compressedRatio = 0.5;
-           getFileMd5(file,function(md5){
+           var compressedRatio = 1;
             compressImage(file,compressedRatio,function(compressedFile,compressedFileSize){
-                startUpload(md5,compressedFile,compressedFileSize);
-            })
+                getFileMd5(compressedFile,file.name,function(md5){
+                     startUpload(md5,compressedFile,compressedFileSize);
+                })
            });
         }
     </script>
