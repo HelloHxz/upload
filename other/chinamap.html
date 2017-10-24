@@ -45,6 +45,7 @@
 		"河北":{textoffsetX:-0,textoffsetY:0,path:"hebei.json",scale:3600,center:[117, 39]},
 		"北京":{textoffsetX:-0,textoffsetY:0,path:"beijing.json",scale:15500,center:[116.5, 40.1]},
 		"天津":{textoffsetX:-0,textoffsetY:0,path:"tianjin.json",scale:15500,center:[117.5, 39.3]},
+		"深圳市":{textoffsetX:-0,textoffsetY:0,path:"shenzhen.json",scale:28600,center:[114,22.5]},
 		"澳门":{textoffsetX:0,textoffsetY:0},
 	}
 
@@ -89,13 +90,13 @@
 				.data( root.features )
 				.enter()	
 				.append("path")
-				.attr("stroke","#ccc")
+				.attr("stroke","rgb(251, 156, 148)")
 				.attr("stroke-width",.1)
 				.attr("id", function(d,i){
 					return "pathid_"+i;
 				})
 				.attr("fill", function(d,i){
-					return "#eee";
+					return "#fff";
 				})
 		
 				.attr("d", path )
@@ -103,14 +104,14 @@
 				.attr("stroke-width",1)
 				.on("mouseover",function(d,i){
 					d3.select(this)
-						.attr("fill","#ccc");
+						.attr("fill","#fbc8c0");
 				}).on("click",function(d,i){
 				    alert(d.properties.name);
 					createMapName(d.properties.name);
 				})
 				.on("mouseout",function(d,i){
 					d3.select(this)
-						.attr("fill","#eee");
+						.attr("fill","#fff");
 				});
 				
 				svg.selectAll("text")  

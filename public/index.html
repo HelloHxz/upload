@@ -7,14 +7,6 @@
     <title>Document</title>
     <script src="./spark-md5.min.js" type="text/javascript"></script>
     <script type="text/javascript">
-        // 前台逻辑
-
-        // 本地存储一份以文件key作为key的上传记录 记录上次上传到的字节位置
-        // 上传的时候这个字段会一起传递给后台
-        // 如果位置和后台的文件长度一致 那么该请求会继续上传，成功返回{file_size:n,code：0} 写入本地存储记录位置
-        // 如果位置和后台文件长度不一致，那么后台返回正确的文件大小，{file_size:n，code:0}，文件继续上传
-        // code 0表示后台无异常 1表示后台异常
-
         var suffixStoreIndex = "_FILESTOREINDEX"
         function getFileMd5(file,successCallBack){
             var fileReader = new FileReader(),    
@@ -78,10 +70,12 @@
         }
 
 
+    
+
 
         var test_step = 0;
       
-        function _uploadFile(file,startIndex,_chunckSize,_md5){
+        function _uploadFile(file,startIndex,_chunckSize,_md5,allSize){
 
             // 测试续传方法 chunckCount分成多次上传 在步骤进行到某一步的时候return
             // 去掉下方注释 上传一部分
@@ -91,12 +85,9 @@
             //     alert("终止了");
             //     return;
             // }
-
             test_step+=1;
 
-            var allSize = file.size;
             var fd = new FormData();
-
             var chunckBlob = null;
             if(startIndex+_chunckSize<allSize){
                 chunckBlob=file.slice(startIndex,startIndex+_chunckSize);
@@ -104,7 +95,6 @@
                 chunckBlob=file.slice(startIndex);
             }
 
-            console.log(startIndex)
 
             fd.append("blob", chunckBlob);
             fd.append("file_size", allSize);
@@ -130,8 +120,8 @@
         var xhr;
         var hasAlreadyUploadSize=0;
 
-        function startUpload(md5,file){
-            chunkSize = parseInt(Math.ceil((file.size/chunckCount)));
+        function startUpload(md5,file,allSize){
+            chunkSize = parseInt(Math.ceil((allSize/chunckCount)));
             hasAlreadyUploadSize = 0;
             xhr = null;
             xhr = new XMLHttpRequest();
@@ -139,7 +129,7 @@
 
             function onprogressHandler (evt){
                 if (evt.lengthComputable) {
-                    var percentComplete = Math.round((hasAlreadyUploadSize+evt.loaded) * 100 /file.size);
+                    var percentComplete = Math.round((hasAlreadyUploadSize+evt.loaded) * 100 /allSize);
                     updateProgress(percentComplete.toString()+"%")
                 }else {
                     updateProgress("unable to compute")
@@ -154,14 +144,14 @@
                    if(RJSON.code===0){
                         var RFileSize = RJSON.file_size;
                         writeStartIndexWithFileKey(md5,RFileSize);
-                        if(RFileSize<file.size){
+                        if(RFileSize<allSize){
                             //继续上传
                             if(hasAlreadyUploadSize===RFileSize){
                                 // 避免死循环
                                 return;
                             }
                             hasAlreadyUploadSize = RFileSize;
-                            _uploadFile(file,RFileSize,chunkSize,md5);
+                            _uploadFile(file,RFileSize,chunkSize,md5,allSize);
                         }else{
                             uploadSuccess(md5);
                             return;
@@ -173,14 +163,50 @@
                 }
             }
 
-            _uploadFile(file,startIndex,chunkSize,md5);
+            _uploadFile(file,startIndex,chunkSize,md5,allSize);
         }
         
+
+        function compressImage(file,compressedRatio,successCallBack){
+            var isImage = file.type.indexOf("image")>=0;
+            if(!isImage){
+                successCallBack(file,file.size);
+                return;
+            }
+            var reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function (e) {
+                var dataUrl = reader.result;   
+                var img = new Image();
+                img.onload = function () {
+                    //缩小图片
+                    //ctx.scale(0.5, 0.5);
+                    var canvas = document.createElement("canvas");
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx = canvas.getContext("2d");
+                    ctx.drawImage(img, 0, 0, img.width, img.height);
+                    var data = canvas.toDataURL('image/jpeg',compressedRatio);
+                    data = data.split(',')[1];
+                    data = window.atob(data);
+                    var ia = new Uint8Array(data.length);
+                    for (var i = 0; i < data.length; i++) {
+                        ia[i] = data.charCodeAt(i);
+                    }
+                    var blob = new Blob([ia], { type: 'image/jpeg' });
+                    successCallBack(blob,blob.size)
+                }
+                img.src = dataUrl;    
+            }
+        }
+
         function onSelect(e){
            var file = e.target.files[0];
-           console.log(file)
+           var compressedRatio = 0.5;
            getFileMd5(file,function(md5){
-            startUpload(md5,file);
+            compressImage(file,compressedRatio,function(compressedFile,compressedFileSize){
+                startUpload(md5,compressedFile,compressedFileSize);
+            })
            });
         }
     </script>
