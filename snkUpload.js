@@ -27,6 +27,7 @@
             if(!config.url){
                 console.error("snk-upload组件startUpload方法缺少url参数");
             }
+        
             this.url = config.url;
             if(!config.file){
                 console.error("snk-upload组件startUpload方法缺少file参数,file例如：e.target.files[0]");
@@ -37,7 +38,7 @@
             this.progressCallBack = config.progress;
             this.extendsData = config.data || {};
             
-            this.chunckCount = 1;
+            this.chunckCount = 3;
             if(config.chunckCount&&!isNaN(config.chunckCount)){
                 this.chunckCount = config.chunckCount;
             }
@@ -53,6 +54,8 @@
             if(nameArr.length >= 2){
                 file_suffix = nameArr[nameArr.length-1];
             }
+            this.hasAlreadyUploadSize = 0;
+            
             this.fileExtendName = file_suffix;
             this.compressImage(config.file,config.compressedRatio,function(compressedFile){
                 _this._getFileMd5(compressedFile,_this.fileName,function(md5){
@@ -61,12 +64,13 @@
                         file:compressedFile,
                         md5:md5,
                         fileName:_this.fileName,
-                        fileExtendName:this.fileExtendName
+                        fileExtendName:_this.fileExtendName
                      };
                     if(_this.getFileInfo){
                         _this.getFileInfo(info);
                     }
-                     _this._start(info);
+
+                    _this._start(info);
                 });
             });
 
@@ -74,7 +78,7 @@
         },
         _uploadFile:function(params){
 
-            //this.testStep = this.testStep||0;
+            // this.testStep = this.testStep||0;
             
             // if(this.testStep>=3){
             //     alert("asdasd");
@@ -86,6 +90,7 @@
 
             var file = params.file;
             var startIndex = params.startIndex;
+            this.hasAlreadyUploadSize = startIndex;
             var chunkSize = params.chunkSize;
             var fileSize = params.fileSize;
             var md5 = params.md5;
@@ -98,20 +103,33 @@
                 chunckBlob=file.slice(startIndex);
             }
             fd.append("blob", chunckBlob);
-            fd.append("file_size", fileSize);
-            fd.append("file_start_index", startIndex);
-            fd.append("file_name", this.fileName);
-            fd.append("file_md5", md5);
-            fd.append("file_extend_name",this.fileExtendName);
-
             for(var key in this.extendsData){
-                if(["blob","file_size","file_start_index","file_name","file_md5","file_extend_name"].indexOf(key)>=0){
+                if(["blob"].indexOf(key)>=0){
                     console.error("data中字段"+key+"和插件内置字段重名");
                     return;
                 }
                 fd.append(key,this.extendsData[key]);
             }
-            this.xhr.open('POST', this.url, true);
+
+            var url = this.url;
+            var pstr = "file_name="+encodeURI(this.fileName)+"&file_start_index="+startIndex+"&file_md5="+md5+"&file_extend="+this.fileExtendName+"&file_size="+fileSize;
+            var urlInfoArr =  this.url.split("?");
+            if(urlInfoArr.length===2){
+                url = urlInfoArr[0];
+                var paramsArr = urlInfoArr[1].split("&");
+                for(var i=0,j=paramsArr.length;i<j;i++){
+                    var paramsPair = paramsArr[i];
+                    var paraKey = paramsPair.split("=")[0];
+                    if(["file_name","file_start_index","file_md5","file_extend","file_size"].indexOf(paraKey)>=0){
+                        console.error("url传参的参数"+paraKey+"和插件内置参数重复，请更改");
+                        return;
+                    }
+                }
+                url = this.url+"&"+pstr;
+            }else{
+                url = url+"?"+pstr;
+            }
+            this.xhr.open('POST', url, true);
             this.xhr.send(fd);
         },
         _start:function(params){
@@ -121,7 +139,6 @@
             var file = params.file;
 
             var chunkSize = parseInt(Math.ceil((fileSize/ this.chunckCount)));
-            this.hasAlreadyUploadSize = 0;
 
             this.xhr = null;
             this.xhr = new XMLHttpRequest();
