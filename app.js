@@ -8,7 +8,7 @@ var fs =require('fs-extra');
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(path.join(__dirname, 'other')));
+app.use(express.static(path.join(__dirname, './')));
 
 app.post('/fileupload',function (req, res) {
   /*
@@ -18,12 +18,14 @@ app.post('/fileupload',function (req, res) {
   //未发生异常为0 发生异常code为1
   form.parse(req, function(err, fields, files) {
       res.writeHead(200, {'content-type': 'text/plain'});
+      // 文件扩展名
+      var fileExtendName = fields.file_extend_name;
       // 文件的唯一标识
       var fileMD5 = fields.file_md5;
       //文件的原始大小
       var fileAllSize = parseInt(fields.file_size);
       // 存储路径
-      var filePath = "./files/"+fileMD5;
+      var filePath = "./files/"+fileMD5+"."+fileExtendName;
       // 服务器该文件的大小
       var serverFileSize = 0;
       // 浏览器传过来的开始写入位置

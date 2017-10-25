@@ -7,3 +7,5 @@
 > npm start
 
 > http://localhost:3000/index.html
+
+![截图](https://github.com/HelloHxz/upload/blob/master/screenshots/1.png)

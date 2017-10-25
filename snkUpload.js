@@ -33,6 +33,7 @@
             }
             this.successCallBack = config.success;
             this.errorCallBack = config.error;
+            this.getFileInfo = config.getFileInfo;
             this.progressCallBack = config.progress;
             this.extendsData = config.data || {};
             
@@ -46,18 +47,43 @@
                 this.compressedRatio = config.compressedRatio;
             }
             this.fileName = config.file.name;
+
+            var file_suffix = "";
+            var nameArr =this.fileName.split(".");
+            if(nameArr.length >= 2){
+                file_suffix = nameArr[nameArr.length-1];
+            }
+            this.fileExtendName = file_suffix;
             this.compressImage(config.file,config.compressedRatio,function(compressedFile){
                 _this._getFileMd5(compressedFile,_this.fileName,function(md5){
-                     _this._start({
+                    var info = {
                         fileSize:compressedFile.size,
                         file:compressedFile,
-                        md5:md5
-                     });
+                        md5:md5,
+                        fileName:_this.fileName,
+                        fileExtendName:this.fileExtendName
+                     };
+                    if(_this.getFileInfo){
+                        _this.getFileInfo(info);
+                    }
+                     _this._start(info);
                 });
             });
-           
+
+            return this;
         },
         _uploadFile:function(params){
+
+            //this.testStep = this.testStep||0;
+            
+            // if(this.testStep>=3){
+            //     alert("asdasd");
+            //     return;
+            // }
+            
+            // this.testStep += 1;
+            
+
             var file = params.file;
             var startIndex = params.startIndex;
             var chunkSize = params.chunkSize;
@@ -76,9 +102,10 @@
             fd.append("file_start_index", startIndex);
             fd.append("file_name", this.fileName);
             fd.append("file_md5", md5);
+            fd.append("file_extend_name",this.fileExtendName);
 
             for(var key in this.extendsData){
-                if(["blob","file_size","file_start_index","file_name","file_md5"].indexOf(key)>=0){
+                if(["blob","file_size","file_start_index","file_name","file_md5","file_extend_name"].indexOf(key)>=0){
                     console.error("data中字段"+key+"和插件内置字段重名");
                     return;
                 }
@@ -137,19 +164,21 @@
                                 fileSize:fileSize
                             });
                         }else{
-                            _this.uploadSuccess(md5,RJSON);
+                            _this.uploadSuccess(md5,RJSON,RFileSize);
                             return;
                         }
                    }else{
                        _this.uploadError({
                          code:0,
-                         mes:RJSON.mes||"上传发生错误"
+                         msg:RJSON.msg||"服务器发生错误",
+                         e:"服务器发生错误"
                        });
                    }
                 }else if(_this.xhr.status!==0&& _this.xhr.status!==200){
                     _this.uploadError({
                         code:1,
-                        mes:_this.xhr.responseText
+                        msg:_this.xhr.responseText,
+                        e:"服务器发生错误"
                     });
                 }
             }
@@ -166,10 +195,14 @@
         uploadError:function(response){
             this.errorCallBack && this.errorCallBack(response);
         },
-        uploadSuccess:function(md5,response){
+        uploadSuccess:function(md5,response,fileSize){
             this.removeStartIndexByFileKey(md5);
-            // updateProgress("100%");
             this.successCallBack && this.successCallBack(response);
+            this.progressCallBack && this.progressCallBack({
+                precent:100,
+                loaded:fileSize,
+                fileSize:fileSize
+            });
         },
         getStoreIndexKey:function(md5){
             return md5+"_uploadfilemd5";
@@ -194,31 +227,35 @@
                 chunks = Math.ceil(file.size / chunkSize),    
                 currentChunk = 0,    
                 spark = this.sparkMD5Instance;    
-            
-            fileReader.onload = function(e) {    
-                spark.appendBinary(e.target.result); 
-                currentChunk++;    
-            
-                if (currentChunk < chunks) {    
-                    loadNext();    
-                }    
-                else {    
-                    var file_suffix = "";
-                    var nameArr =fliename.split(".");
-                    if(nameArr.length >= 2){
-                        file_suffix = "." + nameArr[nameArr.length-1];
-                    }
-                    successCallBack(spark.end()+file_suffix);  
-                }    
-            };    
-            
-            function loadNext() {    
-                var start = currentChunk * chunkSize,    
-                    end = start + chunkSize >= file.size ? file.size : start + chunkSize;    
-            
-                fileReader.readAsBinaryString(blobSlice.call(file, start, end));    
-            };    
-            loadNext();  
+
+            try{
+                fileReader.onload = function(e) {    
+                    spark.appendBinary(e.target.result); 
+                    currentChunk++;    
+                
+                    if (currentChunk < chunks) {    
+                        loadNext();    
+                    }    
+                    else {    
+                        successCallBack(spark.end());  
+                    }    
+                };    
+                function loadNext() {    
+                    var start = currentChunk * chunkSize,    
+                        end = start + chunkSize >= file.size ? file.size : start + chunkSize;    
+                
+                    fileReader.readAsBinaryString(blobSlice.call(file, start, end));    
+                };    
+                loadNext();  
+
+            }catch(e){
+                this.uploadError({
+                    code:0,
+                    msg:"计算MD5发生错误",
+                    e:e
+                });
+            }
+          
         },
         compressImage:function(file,compressedRatio,successCallBack){
             var isImage = file.type.indexOf("image")>=0&&file.type.indexOf("gif")<0;
@@ -226,29 +263,38 @@
                 successCallBack(file);
                 return;
             }
-            var reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = function (e) {
-                var dataUrl = reader.result;   
-                var img = new Image();
-                img.onload = function () {
-                    var canvas = document.createElement("canvas");
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    ctx = canvas.getContext("2d");
-                    ctx.drawImage(img, 0, 0, img.width, img.height);
-                    var data = canvas.toDataURL('image/jpeg',compressedRatio);
-                    data = data.split(',')[1];
-                    data = window.atob(data);
-                    var ia = new Uint8Array(data.length);
-                    for (var i = 0; i < data.length; i++) {
-                        ia[i] = data.charCodeAt(i);
+            try{
+                var reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = function (e) {
+                    var dataUrl = reader.result;   
+                    var img = new Image();
+                    img.onload = function () {
+                        var canvas = document.createElement("canvas");
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx = canvas.getContext("2d");
+                        ctx.drawImage(img, 0, 0, img.width, img.height);
+                        var data = canvas.toDataURL('image/jpeg',compressedRatio);
+                        data = data.split(',')[1];
+                        data = window.atob(data);
+                        var ia = new Uint8Array(data.length);
+                        for (var i = 0; i < data.length; i++) {
+                            ia[i] = data.charCodeAt(i);
+                        }
+                        var blob = new Blob([ia], { type: 'image/jpeg' });
+                        successCallBack(blob)
                     }
-                    var blob = new Blob([ia], { type: 'image/jpeg' });
-                    successCallBack(blob)
+                    img.src = dataUrl;    
                 }
-                img.src = dataUrl;    
+            }catch(e){
+                this.uploadError({
+                    code:0,
+                    msg:"压缩图片发生错误",
+                    e:e
+                });
             }
+            
         }
 
     }
