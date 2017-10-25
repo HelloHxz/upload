@@ -65,4 +65,21 @@ function onSelect(e){
 ```
 
 
+
+参数名| 说明  | 类型 | 必填
+---|---|---|---
+url | 上传地址，可带get参数 | String | 是
+data | formData参数扩展 | Json|否
+chunckCount | 分片数,默认分3片上传 |Int|否
+compressedRatio |图片压缩率,默认0.3 范围 0.01~1 |INT|否
+sparkMD5Instance |MD5插件实例 |Object|是
+file |input type='file' 选中的文件对象 |File|是
+getFileInfo |获取到md5和压缩后的信息 |Function|否
+success |上传成功回调 |Function|否
+error |上传失败回调 |Function|否
+progress |上传进度回调 |Function|否
+
+
+
+
 ![截图](https://github.com/HelloHxz/upload/blob/master/screenshots/1.png)

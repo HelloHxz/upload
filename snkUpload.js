@@ -43,7 +43,7 @@
                 this.chunckCount = config.chunckCount;
             }
             this.sparkMD5Instance = config.sparkMD5Instance;
-            this.compressedRatio = 0.5;
+            this.compressedRatio = 0.3;
             if(config.compressedRatio&&!isNaN(config.compressedRatio)){
                 this.compressedRatio = config.compressedRatio;
             }
