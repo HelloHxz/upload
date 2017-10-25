@@ -12,8 +12,22 @@
         function onSelect(e){
            Upload.startUpload({
              url:"./fileupload",
+             data:{
+               extendskey:"一些字段"
+             },
+             chunckCount:5,
+             compressedRatio:1,//0~1
              sparkMD5Instance:new SparkMD5(),
-             file: e.target.files[0]
+             file: e.target.files[0],
+             success:function(params){
+              //alert("上传成功");
+             },
+             error:function(params){
+              console.log(params)
+             },
+             progress:function(params){
+              console.log(params.precent);
+             }
            })
        }
     </script>

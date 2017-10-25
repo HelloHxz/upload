@@ -34,6 +34,7 @@
             this.successCallBack = config.success;
             this.errorCallBack = config.error;
             this.progressCallBack = config.progress;
+            this.extendsData = config.data || {};
             
             this.chunckCount = 1;
             if(config.chunckCount&&!isNaN(config.chunckCount)){
@@ -75,6 +76,14 @@
             fd.append("file_start_index", startIndex);
             fd.append("file_name", this.fileName);
             fd.append("file_md5", md5);
+
+            for(var key in this.extendsData){
+                if(["blob","file_size","file_start_index","file_name","file_md5"].indexOf(key)>=0){
+                    console.error("data中字段"+key+"和插件内置字段重名");
+                    return;
+                }
+                fd.append(key,this.extendsData[key]);
+            }
             this.xhr.open('POST', this.url, true);
             this.xhr.send(fd);
         },
@@ -91,12 +100,18 @@
             this.xhr = new XMLHttpRequest();
 
             function onprogressHandler (evt){
+                var loaded = 0;
                 if (evt.lengthComputable) {
-                    var percentComplete = Math.round((_this.hasAlreadyUploadSize+evt.loaded) * 100 /fileSize);
-                    //updateProgress(percentComplete.toString()+"%")
+                    loaded = evt.loaded;
                 }else {
-                    //updateProgress("unable to compute")
                 }
+                
+                var precent = Math.round((_this.hasAlreadyUploadSize+loaded) * 100 /fileSize);
+                _this.progressCallBack && _this.progressCallBack({
+                    precent:precent>100?100:precent,
+                    loaded:_this.hasAlreadyUploadSize+loaded,
+                    fileSize:fileSize
+                });
             }
 
             this.xhr.upload.addEventListener('progress', onprogressHandler, false);
@@ -122,13 +137,20 @@
                                 fileSize:fileSize
                             });
                         }else{
-                            _this.uploadSuccess(md5);
+                            _this.uploadSuccess(md5,RJSON);
                             return;
                         }
                    }else{
-                       alert(RJSON.mes||"上传发生错误");
+                       _this.uploadError({
+                         code:0,
+                         mes:RJSON.mes||"上传发生错误"
+                       });
                    }
-                  
+                }else if(_this.xhr.status!==0&& _this.xhr.status!==200){
+                    _this.uploadError({
+                        code:1,
+                        mes:_this.xhr.responseText
+                    });
                 }
             }
 
@@ -141,9 +163,13 @@
                 fileSize:fileSize
             });
         },
-        uploadSuccess:function(md5){
+        uploadError:function(response){
+            this.errorCallBack && this.errorCallBack(response);
+        },
+        uploadSuccess:function(md5,response){
             this.removeStartIndexByFileKey(md5);
             // updateProgress("100%");
+            this.successCallBack && this.successCallBack(response);
         },
         getStoreIndexKey:function(md5){
             return md5+"_uploadfilemd5";
@@ -195,7 +221,7 @@
             loadNext();  
         },
         compressImage:function(file,compressedRatio,successCallBack){
-            var isImage = file.type.indexOf("image")>=0;
+            var isImage = file.type.indexOf("image")>=0&&file.type.indexOf("gif")<0;
             if(!isImage){
                 successCallBack(file);
                 return;
