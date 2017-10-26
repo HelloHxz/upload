@@ -39,8 +39,8 @@ function onSelect(e){
      data:{
        extendkey:"一些字段"
      },
-     chunckCount:1, //默认1
-     compressedRatio:0.3,//默认0.5  0~1
+     chunckCount:4, 
+     compressedRatio:0.3,
      sparkMD5Instance:new SparkMD5(),
      file: e.target.files[0],
      getFileInfo:function(info){
@@ -83,3 +83,5 @@ progress |上传进度回调 |Function|否
 
 
 ![截图](https://github.com/HelloHxz/upload/blob/master/screenshots/1.png)
+
+
