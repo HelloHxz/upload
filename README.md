@@ -14,8 +14,7 @@
 
 
 ```
-var SnkUplpad = require("./某些目录/snkUpload");
-var SparkMD5 = require("./某些目录/sparkMd5");
+var SnkUpload = require("./某些目录/index");
 
 ```
 
@@ -23,8 +22,7 @@ var SparkMD5 = require("./某些目录/sparkMd5");
 ### 普通链接引用
 
 ```
-<script src="./sparkMd5.js" type="text/javascript"></script>
-<script src="./snkUpload.js"></script>
+<script src="./index.js"></script>
 ```
 
 ### 调用
@@ -41,7 +39,6 @@ function onSelect(e){
      },
      chunckCount:4, 
      compressedRatio:0.3,
-     sparkMD5Instance:new SparkMD5(),
      file: e.target.files[0],
      getFileInfo:function(info){
        //可以获取到md5
